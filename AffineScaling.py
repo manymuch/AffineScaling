@@ -14,5 +14,6 @@ class AffineScaling():
 
 if __name__ == "__main__":
     
-    # LP problem in standard form
-    
+    # LP problem in standard
+    epsilon = 0.1
+    A = np.asarray([[1,0,1,0,0,0],[-1,0,0,1,0,0],[-epsilon,1,0,0,1,0],[-epsilon,-1,0,0,0,1]])
