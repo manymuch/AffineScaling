@@ -53,9 +53,13 @@ class AffineScaling():
 
     def __Update_X(self):
         move = self.X_k @ self.X_k @ self.r_k / \
-            np.linalg.norm(self.X_k @ self.r_k)
+            self.__gamma(self.X_k @ self.r_k)
         move = np.diag(move[:, 0])
         self.X_k = self.X_k - self.beta * move
+    
+    def __gamma(self, input):
+        clipped = np.clip(input, 0, None)
+        return np.max(clipped)
 
     def Run(self):
         self.__Caculate_r()
