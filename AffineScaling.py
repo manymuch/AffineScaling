@@ -6,20 +6,22 @@ class AffineScaling():
     # Consider standard form:
     # min c'x
     # s.t. Ax = b, x>=0
-    def __init__(self, A, b, c, x, epsilon=1e-2, beta=0.1):
+    def __init__(self, A, b, c, x, epsilon=1e-2, beta=0.1, trace=False):
         (m, n) = A.shape
 
         # Input shape check:
         if A.shape != (b.shape[0], c.shape[0]):
             raise RuntimeError("Input shape incorrect!")
-        if beta<=0 or beta>=1:
+        if beta <= 0 or beta >= 1:
             raise RuntimeError("beta must between (0,1)")
-        if epsilon<=0:
+        if epsilon <= 0:
             raise RuntimeError("epsilon must be positive")
         # Feasibility check:
         if not np.allclose(A @ x, b):
             raise RuntimeError(
                 "initialization not feasible, Ax = {}\nbut b = {}".format(A @ x, b))
+        if not np.all(np.greater_equal(x, 0)):
+            raise RuntimeError("initialization not feasible, x must >=0")
         self.m = m  # number of equality constraints
         self.n = n  # number of valuables
         self.A = A
@@ -29,6 +31,9 @@ class AffineScaling():
         self.r_k = None
         self.epsilon = epsilon  # optimality threshold
         self.beta = beta
+        self.trace = True
+        if trace:
+            self.traces = np.empty((1,n))
 
     # reached optimal: return true
     def __OptimalityCheck(self):
@@ -39,15 +44,16 @@ class AffineScaling():
     # unbounded: return true
     def __UnboundenessCheck(self):
         reduced_cost = - self.X_k @ self.X_k @ self.r_k
-        return np.all(np.greater_equal(reduced_cost,0))
-    
+        return np.all(np.greater_equal(reduced_cost, 0))
+
     def __Caculate_r(self):
         self.p_k = np.linalg.inv(self.A @ self.X_k @ self.X_k @ np.transpose(
             self.A)) @ self.A @ self.X_k @ self.X_k @ self.c
         self.r_k = self.c - np.transpose(self.A) @ self.p_k
 
     def __Update_X(self):
-        move = self.X_k @ self.X_k @ self.r_k / np.linalg.norm(self.X_k @ self.r_k)
+        move = self.X_k @ self.X_k @ self.r_k / \
+            np.linalg.norm(self.X_k @ self.r_k)
         move = np.diag(move[:, 0])
         self.X_k = self.X_k - self.beta * move
 
@@ -59,8 +65,14 @@ class AffineScaling():
                 return None
             self.__Update_X()
             self.__Caculate_r()
-            print(np.diag(self.X_k)[:2])
+            if self.trace:
+                expanded_X = np.expand_dims(np.diag(self.X_k),axis=0)
+                self.traces = np.concatenate((self.traces,expanded_X),axis=0)
         return np.diag(self.X_k)
+    
+    def GetTraces(self):
+        return self.traces
+
 
 def StandardFormTransformer(A_origin, b, c_origin, x_origin):
     (m, _) = A_origin.shape
@@ -78,11 +90,17 @@ if __name__ == "__main__":
     # LP problem in standard
     epsilon = 0.1
     A_origin = np.asarray([[1, 0], [-1, 0], [epsilon, -1], [epsilon, 1]])
-    b = np.asarray([[1, -epsilon, 0, 1]]).transpose()
-    c_origin = np.asarray([[0, -1]]).transpose()
-    x_origin = np.asarray([[0.5, 0.5]]).transpose()
+    b = np.asarray([[1, -epsilon, 0, 1]]).T
+    c_origin = np.asarray([[0, -1]]).T
+    x_origin = np.asarray([[0.5, 0.5]]).T
     (A, _, c, x) = StandardFormTransformer(A_origin, b, c_origin, x_origin)
 
-    solver = AffineScaling(A, b, c, x)
+    solver = AffineScaling(A, b, c, x, trace=True)
     result = solver.Run()
+    traces = solver.GetTraces()
     print(result)
+    x, y = traces[:,:2].T
+    import matplotlib.pyplot as plt
+    plt.scatter(x,y)
+    plt.show()
+
