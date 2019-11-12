@@ -1,5 +1,6 @@
 import numpy as np
-from AffineScaling import AffineScaling, StandardFormTransformer
+from AffineScaling import AffineScaling
+from HelperFunction import StandardFormTransformer
 import matplotlib.pyplot as plt
 
 

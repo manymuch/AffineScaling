@@ -1,39 +1,24 @@
 import numpy as np
+from HelperFunction import LinProgBaseClass, StandardFormTransformer
 
 
-class AffineScaling():
+class AffineScaling(LinProgBaseClass):
 
-    # Consider standard form:
-    # min c'x
-    # s.t. Ax = b, x>=0
+    # epsilon is optimality threshold
+    # beta is the stepsize that controling the elipsoid size
     def __init__(self, A, b, c, x, epsilon=1e-2, beta=0.1, trace=False):
-        (m, n) = A.shape
+        super(AffineScaling, self).__init__(A, b, c, x, trace=trace)
 
-        # Input shape check:
-        if A.shape != (b.shape[0], c.shape[0]):
-            raise RuntimeError("Input shape incorrect!")
         if beta <= 0 or beta >= 1:
             raise RuntimeError("beta must between (0,1)")
         if epsilon <= 0:
             raise RuntimeError("epsilon must be positive")
-        # Feasibility check:
-        if not np.allclose(A @ x, b):
-            raise RuntimeError(
-                "initialization not feasible, Ax = {}\nbut b = {}".format(A @ x, b))
-        if not np.all(np.greater_equal(x, 0)):
-            raise RuntimeError("initialization not feasible, x must >=0")
-        self.m = m  # number of equality constraints
-        self.n = n  # number of valuables
-        self.A = A
-        self.c = c  # cost fuction
+
         self.X_k = np.diag(x[:, 0])
         self.p_k = None
         self.r_k = None
         self.epsilon = epsilon  # optimality threshold
         self.beta = beta
-        self.trace = True
-        if trace:
-            self.traces = np.empty((1,n))
 
     # reached optimal: return true
     def __OptimalityCheck(self):
@@ -76,17 +61,6 @@ class AffineScaling():
     
     def GetTraces(self):
         return self.traces
-
-
-def StandardFormTransformer(A_origin, b, c_origin, x_origin):
-    (m, _) = A_origin.shape
-    A_auxiliary = np.eye(m)
-    A = np.concatenate((A_origin, A_auxiliary), axis=1)
-    x_auxiliary = b - A_origin @ x_origin
-    x = np.concatenate((x_origin, x_auxiliary), axis=0)
-    c_auxiliary = np.zeros((m, 1))
-    c = np.concatenate((c_origin, c_auxiliary), axis=0)
-    return A, b, c, x
 
 
 if __name__ == "__main__":
