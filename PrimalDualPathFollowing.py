@@ -5,7 +5,7 @@ class PrimalDualPathFollowing(LinProgBaseClass):
 
     # epsilon is optimality threshold
     def __init__(self, A, b, c, x, s, p,
-                 epsilon=1e-2, rou=.9, alpha=0.6,trace=False):
+                 epsilon=1e-2, rou=.6, alpha=0.6,trace=False):
         super(PrimalDualPathFollowing, self).__init__(A, b, c, x, trace=trace)
 
         if alpha <= 0 or alpha >= 1:
@@ -30,15 +30,12 @@ class PrimalDualPathFollowing(LinProgBaseClass):
     def __ComputeNewtonDirections(self):
         column_x = np.expand_dims(np.diag(self.X_k),axis=1)
         offset = (self.s_k.T @ column_x)[0,0]
-        
         miu = self.rou * offset / self.n
-        
         Dk = np.diag(np.sqrt(column_x / self.s_k)[:, 0])
         Pk = Dk @ self.A.T @ np.linalg.inv(self.A @ Dk @ Dk @ self.A.T) @ self.A @ Dk
         vmiu = np.linalg.inv(self.X_k) @ Dk @ (miu - column_x * self.s_k)
         d_x = Dk @ (np.eye(self.n) - Pk) @ vmiu
         d_p = - np.linalg.inv(self.A @ Dk @ Dk @ self.A.T) @ self.A @ Dk @ vmiu
-
         d_s = np.linalg.inv(Dk) @ Pk @ vmiu
 
         return d_x, d_p, d_s
